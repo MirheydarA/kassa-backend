@@ -1,0 +1,10 @@
+{
+    "csharp-dev-tools.entityFramework.migrationPreferences": {
+        "backend.virtual.sln": {
+            "startupProject": "/Users/alizadamirheydar/Desktop/Projects/kassa-project/backend/KassaApi/KassaApi.csproj",
+            "migrationsProject": "/Users/alizadamirheydar/Desktop/Projects/kassa-project/backend/KassaApi/KassaApi.csproj",
+            "dbContextClass": "AppDbContext",
+            "migrationsFolder": "Migrations"
+        }
+    }
+}
