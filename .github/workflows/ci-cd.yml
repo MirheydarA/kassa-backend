@@ -1,0 +1,54 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: KassaApi
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --no-restore -c Release
+
+  deploy:
+    name: Deploy to server
+    needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      # Required repo secrets:
+      #   SSH_HOST             - server IP/hostname
+      #   SSH_USER             - SSH user
+      #   SSH_PRIVATE_KEY      - private key with access to the server
+      #   SSH_PORT             - optional, defaults to 22
+      #   BACKEND_DEPLOY_PATH  - absolute path to this repo's checkout on the server
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT || '22' }}
+          script: |
+            set -e
+            cd ${{ secrets.BACKEND_DEPLOY_PATH }}
+            git pull origin main
+            cd KassaApi
+            docker compose build backend
+            docker compose up -d backend
