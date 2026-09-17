@@ -55,7 +55,8 @@ public class ExchangeController : ControllerBase
         if (request.FromAmount <= 0 || request.Rate <= 0)
             return BadRequest(new { message = "Məbləğ və kurs 0-dan böyük olmalıdır" });
 
-        var client = await ClientsController.FindOrCreateAsync(_db, request.ClientName);
+        var clientName = string.IsNullOrWhiteSpace(request.ClientName) ? "Naməlum müştəri" : request.ClientName;
+        var client = await ClientsController.FindOrCreateAsync(_db, clientName);
         var toAmount = CalcToAmount(from, to, request.FromAmount, request.Rate);
 
         var exchange = new Exchange
