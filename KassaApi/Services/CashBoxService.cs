@@ -41,6 +41,30 @@ public class CashBoxService
         });
     }
 
+    /// <summary>
+    /// Bir kassa hərəkətini geri qaytarır: balansa əks təsiri tətbiq edir və hərəkəti (soft) silir.
+    /// SaveChanges çağırmır - çağıran tərəf SaveChangesAsync etməlidir.
+    /// </summary>
+    public async Task<CashBoxTransaction?> RevertTransactionAsync(int transactionId)
+    {
+        var tx = await _db.CashBoxTransactions.FirstOrDefaultAsync(t => t.Id == transactionId);
+        if (tx == null) return null;
+
+        var balance = await _db.CashBoxBalances.FirstOrDefaultAsync(b => b.Currency == tx.Currency);
+        if (balance == null)
+        {
+            balance = new CashBoxBalance { Currency = tx.Currency, Amount = 0 };
+            _db.CashBoxBalances.Add(balance);
+        }
+
+        // Hərəkətin əks təsirini tətbiq et: "In" idisə çıx, "Out" idisə geri qoy
+        balance.Amount += tx.Type == TransactionType.In ? -tx.Amount : tx.Amount;
+
+        _db.CashBoxTransactions.Remove(tx); // ISoftDeletable -> avtomatik soft-delete olunur
+
+        return tx;
+    }
+
     public async Task<CashBoxBalanceDto> GetBalanceAsync()
     {
         var balances = await _db.CashBoxBalances.ToListAsync();

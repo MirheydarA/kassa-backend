@@ -24,9 +24,14 @@ public class ExchangeController : ControllerBase
 
     [HttpGet]
     public async Task<ActionResult<PagedResult<ExchangeDto>>> GetAll(
-        [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+        [FromQuery] string? fromCurrency, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
     {
-        var query = _db.Exchanges.Include(e => e.Client).OrderByDescending(e => e.CreatedAt);
+        var queryable = _db.Exchanges.Include(e => e.Client).AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(fromCurrency) && Enum.TryParse<Currency>(fromCurrency, true, out var fc))
+            queryable = queryable.Where(e => e.FromCurrency == fc);
+
+        var query = queryable.OrderByDescending(e => e.CreatedAt);
 
         var total = await query.CountAsync();
         var items = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
@@ -51,7 +56,7 @@ public class ExchangeController : ControllerBase
             return BadRequest(new { message = "Məbləğ və kurs 0-dan böyük olmalıdır" });
 
         var client = await ClientsController.FindOrCreateAsync(_db, request.ClientName);
-        var toAmount = request.FromAmount * request.Rate;
+        var toAmount = CalcToAmount(from, to, request.FromAmount, request.Rate);
 
         var exchange = new Exchange
         {
@@ -78,6 +83,14 @@ public class ExchangeController : ControllerBase
 
         exchange.Client = client;
         return Ok(ToDto(exchange));
+    }
+
+    // RUB -> USD zamanı məbləğ kursa bölünür, USD -> RUB zamanı isə vurulur
+    private static decimal CalcToAmount(Currency from, Currency to, decimal fromAmount, decimal rate)
+    {
+        if (from == Currency.RUB && to == Currency.USD)
+            return fromAmount / rate;
+        return fromAmount * rate;
     }
 
     private static ExchangeDto ToDto(Exchange e) => new()
@@ -109,7 +122,7 @@ public class ExchangeController : ControllerBase
 
         exchange.FromAmount = request.FromAmount;
         exchange.Rate = request.Rate;
-        exchange.ToAmount = request.FromAmount * request.Rate;
+        exchange.ToAmount = CalcToAmount(exchange.FromCurrency, exchange.ToCurrency, request.FromAmount, request.Rate);
         exchange.Note = request.Note;
 
         await _cashBox.ChangeBalanceAsync(exchange.FromCurrency, request.FromAmount, CashSource.Exchange, exchange.Id,

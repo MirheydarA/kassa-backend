@@ -12,6 +12,7 @@ public class AppDbContext : DbContext
     public DbSet<Loan> Loans => Set<Loan>();
     public DbSet<LoanPayment> LoanPayments => Set<LoanPayment>();
     public DbSet<MyDebt> MyDebts => Set<MyDebt>();
+    public DbSet<MyDebtPayment> MyDebtPayments => Set<MyDebtPayment>();
     public DbSet<Exchange> Exchanges => Set<Exchange>();
     public DbSet<Expense> Expenses => Set<Expense>();
     public DbSet<CashBoxBalance> CashBoxBalances => Set<CashBoxBalance>();
@@ -65,11 +66,18 @@ public class AppDbContext : DbContext
             .HasForeignKey(e => e.ClientId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        modelBuilder.Entity<MyDebtPayment>()
+            .HasOne(p => p.MyDebt)
+            .WithMany(d => d.Payments)
+            .HasForeignKey(p => p.MyDebtId)
+            .OnDelete(DeleteBehavior.Cascade);
+
         modelBuilder.Entity<AppUser>().HasQueryFilter(e => !e.IsDeleted);
         modelBuilder.Entity<Client>().HasQueryFilter(e => !e.IsDeleted);
         modelBuilder.Entity<Loan>().HasQueryFilter(e => !e.IsDeleted);
         modelBuilder.Entity<LoanPayment>().HasQueryFilter(e => !e.IsDeleted);
         modelBuilder.Entity<MyDebt>().HasQueryFilter(e => !e.IsDeleted);
+        modelBuilder.Entity<MyDebtPayment>().HasQueryFilter(e => !e.IsDeleted);
         modelBuilder.Entity<Exchange>().HasQueryFilter(e => !e.IsDeleted);
         modelBuilder.Entity<Expense>().HasQueryFilter(e => !e.IsDeleted);
         modelBuilder.Entity<CashBoxBalance>().HasQueryFilter(e => !e.IsDeleted);

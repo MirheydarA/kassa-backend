@@ -16,3 +16,8 @@ public class CashBoxTransactionDto
     public string Description { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
 }
+
+public class RevertTransactionRequest
+{
+    public string Password { get; set; } = string.Empty;
+}

@@ -27,7 +27,7 @@ public class MyDebtsController : ControllerBase
     public async Task<ActionResult<PagedResult<MyDebtDto>>> GetAll(
         [FromQuery] string? currency, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
     {
-        var query = _db.MyDebts.Include(d => d.Client).AsQueryable();
+        var query = _db.MyDebts.Include(d => d.Client).Include(d => d.Payments).AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(currency) && Enum.TryParse<Currency>(currency, true, out var cur))
             query = query.Where(d => d.Currency == cur);
@@ -62,6 +62,8 @@ public class MyDebtsController : ControllerBase
             Currency = currency,
             Amount = request.Amount,
             ExchangeRate = currency == Currency.USD ? request.ExchangeRate : null,
+            RemainingAmount = request.Amount,
+            Status = LoanStatus.Open,
             Note = request.Note
         };
 
@@ -78,6 +80,35 @@ public class MyDebtsController : ControllerBase
         return Ok(ToDto(debt));
     }
 
+    // Borcu (tam və ya qismən) qaytarıram -> pul mənim kassamdan çıxır
+    [HttpPost("{id}/payments")]
+    public async Task<ActionResult<MyDebtDto>> AddPayment(int id, CreateMyDebtPaymentRequest request)
+    {
+        var debt = await _db.MyDebts.Include(d => d.Client).Include(d => d.Payments)
+            .FirstOrDefaultAsync(d => d.Id == id);
+        if (debt == null) return NotFound();
+
+        if (request.Amount <= 0)
+            return BadRequest(new { message = "Məbləğ 0-dan böyük olmalıdır" });
+
+        if (request.Amount > debt.RemainingAmount)
+            return BadRequest(new { message = "Ödəniş qalan borcdan çox ola bilməz" });
+
+        var payment = new MyDebtPayment { MyDebtId = debt.Id, Amount = request.Amount, Note = request.Note };
+        _db.MyDebtPayments.Add(payment);
+
+        debt.RemainingAmount -= request.Amount;
+        debt.Status = debt.RemainingAmount <= 0 ? LoanStatus.Closed : LoanStatus.PartiallyPaid;
+
+        await _cashBox.ChangeBalanceAsync(debt.Currency, -request.Amount, CashSource.MyDebtPayment, debt.Id,
+            $"Borc qaytarıldı: {debt.Client!.Name}");
+
+        await _db.SaveChangesAsync();
+
+        debt.Payments.Add(payment);
+        return Ok(ToDto(debt));
+    }
+
     private static MyDebtDto ToDto(MyDebt d) => new()
     {
         Id = d.Id,
@@ -85,14 +116,24 @@ public class MyDebtsController : ControllerBase
         Currency = d.Currency.ToString(),
         Amount = d.Amount,
         ExchangeRate = d.ExchangeRate,
+        RemainingAmount = d.RemainingAmount,
+        Status = d.Status.ToString(),
         Note = d.Note,
-        CreatedAt = d.CreatedAt
+        CreatedAt = d.CreatedAt,
+        Payments = d.Payments.OrderByDescending(p => p.CreatedAt).Select(p => new MyDebtPaymentDto
+        {
+            Id = p.Id,
+            Amount = p.Amount,
+            Note = p.Note,
+            CreatedAt = p.CreatedAt
+        }).ToList()
     };
 
     [HttpPut("{id}")]
     public async Task<ActionResult<MyDebtDto>> Update(int id, UpdateMyDebtRequest request)
     {
-        var debt = await _db.MyDebts.Include(d => d.Client).FirstOrDefaultAsync(d => d.Id == id);
+        var debt = await _db.MyDebts.Include(d => d.Client).Include(d => d.Payments)
+            .FirstOrDefaultAsync(d => d.Id == id);
         if (debt == null) return NotFound();
 
         if (request.Amount <= 0)
@@ -101,12 +142,19 @@ public class MyDebtsController : ControllerBase
         if (debt.Currency == Currency.USD && (request.ExchangeRate == null || request.ExchangeRate <= 0))
             return BadRequest(new { message = "Dollar üçün kurs qeyd olunmalıdır" });
 
+        var totalPaid = debt.Payments.Sum(p => p.Amount);
+        if (request.Amount < totalPaid)
+            return BadRequest(new { message = $"Yeni məbləğ artıq qaytarılmış {totalPaid} {debt.Currency}-dan az ola bilməz" });
+
         await _cashBox.ChangeBalanceAsync(debt.Currency, -debt.Amount, CashSource.MyDebt, debt.Id,
             $"Borc redaktəsi (geri alma): {debt.Client!.Name}");
 
         debt.Amount = request.Amount;
         debt.ExchangeRate = debt.Currency == Currency.USD ? request.ExchangeRate : null;
         debt.Note = request.Note;
+        debt.RemainingAmount = request.Amount - totalPaid;
+        debt.Status = debt.RemainingAmount <= 0 ? LoanStatus.Closed
+            : totalPaid > 0 ? LoanStatus.PartiallyPaid : LoanStatus.Open;
 
         await _cashBox.ChangeBalanceAsync(debt.Currency, request.Amount, CashSource.MyDebt, debt.Id,
             $"Borc redaktəsi (yeni): {debt.Client!.Name}");
