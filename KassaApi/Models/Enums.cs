@@ -24,6 +24,7 @@ public enum CashSource
     Loan,
     LoanPayment,
     MyDebt,
+    MyDebtPayment,
     Exchange,
     Expense
 }
