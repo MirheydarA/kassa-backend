@@ -36,10 +36,20 @@ public class CashBoxController : ControllerBase
         Currency? cur = null;
         if (!string.IsNullOrWhiteSpace(currency) && Enum.TryParse<Currency>(currency, true, out var c)) cur = c;
 
-        TransactionType? t = null;
-        if (!string.IsNullOrWhiteSpace(type) && Enum.TryParse<TransactionType>(type, true, out var tt)) t = tt;
+        return Ok(await _cashBox.GetTransactionsAsync(cur, type, from, to, page, pageSize));
+    }
 
-        return Ok(await _cashBox.GetTransactionsAsync(cur, t, from, to, page, pageSize));
+    // Gün-gün səhifələmə: hər çağırış bir günün bütün hərəkətlərini qaytarır (böyük datasetlərdə frontend-i yükləməmək üçün).
+    [HttpGet("transactions/by-day")]
+    public async Task<ActionResult<CashBoxDayResultDto>> GetTransactionsByDay(
+        [FromQuery] string? currency, [FromQuery] string? type,
+        [FromQuery] DateTime? from, [FromQuery] DateTime? to,
+        [FromQuery] int dayPage = 1)
+    {
+        Currency? cur = null;
+        if (!string.IsNullOrWhiteSpace(currency) && Enum.TryParse<Currency>(currency, true, out var c)) cur = c;
+
+        return Ok(await _cashBox.GetTransactionsByDayAsync(cur, type, from, to, dayPage));
     }
 
     // Bir kassa hərəkətini geri qaytarır (şifrə təsdiqi ilə)

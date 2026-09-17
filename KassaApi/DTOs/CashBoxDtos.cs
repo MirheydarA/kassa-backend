@@ -21,3 +21,11 @@ public class RevertTransactionRequest
 {
     public string Password { get; set; } = string.Empty;
 }
+
+public class CashBoxDayResultDto
+{
+    public DateTime? Date { get; set; }
+    public List<CashBoxTransactionDto> Items { get; set; } = new();
+    public int DayPage { get; set; }
+    public int TotalDays { get; set; }
+}
