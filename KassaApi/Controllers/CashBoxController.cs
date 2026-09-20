@@ -27,6 +27,33 @@ public class CashBoxController : ControllerBase
     [HttpGet("balance")]
     public async Task<ActionResult<CashBoxBalanceDto>> GetBalance() => Ok(await _cashBox.GetBalanceAsync());
 
+    // Kassa balansını əl ilə düzəldir (şifrə təsdiqi ilə). Fərq (yeni - köhnə) adi bir kassa hərəkəti kimi qeyd olunur.
+    [HttpPut("balance")]
+    public async Task<ActionResult<CashBoxBalanceDto>> AdjustBalance(AdjustBalanceRequest request)
+    {
+        var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub")!);
+        var user = _db.Users.FirstOrDefault(u => u.Id == userId);
+        if (user == null) return Unauthorized();
+
+        if (string.IsNullOrEmpty(request.Password) || !_auth.VerifyPassword(user, request.Password))
+            return BadRequest(new { message = "Şifrə yanlışdır" });
+
+        if (!Enum.TryParse<Currency>(request.Currency, true, out var currency))
+            return BadRequest(new { message = "Yanlış valyuta" });
+
+        var balance = await _cashBox.GetBalanceAsync();
+        var current = currency == Currency.USD ? balance.Usd : balance.Rub;
+        var delta = request.NewAmount - current;
+
+        if (delta != 0)
+        {
+            await _cashBox.ChangeBalanceAsync(currency, delta, CashSource.Adjustment, null, "Kassa redaktəsi (əl ilə)");
+            await _db.SaveChangesAsync();
+        }
+
+        return Ok(await _cashBox.GetBalanceAsync());
+    }
+
     [HttpGet("transactions")]
     public async Task<ActionResult<PagedResult<CashBoxTransactionDto>>> GetTransactions(
         [FromQuery] string? currency, [FromQuery] string? type,

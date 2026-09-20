@@ -26,5 +26,6 @@ public enum CashSource
     MyDebt,
     MyDebtPayment,
     Exchange,
-    Expense
+    Expense,
+    Adjustment
 }
