@@ -85,6 +85,7 @@ public class CashBoxService
         CashSource.MyDebtPayment => "mydebt_payment",
         CashSource.Exchange => type == TransactionType.In ? "exchange_in" : "exchange_out",
         CashSource.Expense => "expense",
+        CashSource.Adjustment => "adjustment",
         _ => source.ToString().ToLowerInvariant()
     };
 
@@ -99,6 +100,7 @@ public class CashBoxService
             case "exchange_in": source = CashSource.Exchange; type = TransactionType.In; return true;
             case "exchange_out": source = CashSource.Exchange; type = TransactionType.Out; return true;
             case "expense": source = CashSource.Expense; type = null; return true;
+            case "adjustment": source = CashSource.Adjustment; type = null; return true;
             default: source = default; type = null; return false;
         }
     }

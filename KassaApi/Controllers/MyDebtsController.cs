@@ -25,12 +25,19 @@ public class MyDebtsController : ControllerBase
 
     [HttpGet]
     public async Task<ActionResult<PagedResult<MyDebtDto>>> GetAll(
-        [FromQuery] string? currency, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+        [FromQuery] string? currency, [FromQuery] string? clientName, [FromQuery] bool includeClosed = false,
+        [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
     {
         var query = _db.MyDebts.Include(d => d.Client).Include(d => d.Payments).AsQueryable();
 
+        if (!includeClosed)
+            query = query.Where(d => d.Status != LoanStatus.Closed);
+
         if (!string.IsNullOrWhiteSpace(currency) && Enum.TryParse<Currency>(currency, true, out var cur))
             query = query.Where(d => d.Currency == cur);
+
+        if (!string.IsNullOrWhiteSpace(clientName))
+            query = query.Where(d => d.Client!.Name.Contains(clientName));
 
         query = query.OrderByDescending(d => d.CreatedAt);
 
@@ -40,6 +47,16 @@ public class MyDebtsController : ControllerBase
         var dtos = items.Select(ToDto).ToList();
 
         return Ok(new PagedResult<MyDebtDto> { Items = dtos, TotalCount = total, Page = page, PageSize = pageSize });
+    }
+
+    [HttpGet("{id}")]
+    public async Task<ActionResult<MyDebtDto>> GetById(int id)
+    {
+        var debt = await _db.MyDebts.Include(d => d.Client).Include(d => d.Payments)
+            .FirstOrDefaultAsync(d => d.Id == id);
+        if (debt == null) return NotFound();
+
+        return Ok(ToDto(debt));
     }
 
     [HttpPost]

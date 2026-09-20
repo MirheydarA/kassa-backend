@@ -22,6 +22,13 @@ public class RevertTransactionRequest
     public string Password { get; set; } = string.Empty;
 }
 
+public class AdjustBalanceRequest
+{
+    public string Currency { get; set; } = string.Empty;
+    public decimal NewAmount { get; set; }
+    public string Password { get; set; } = string.Empty;
+}
+
 public class CashBoxDayResultDto
 {
     public DateTime? Date { get; set; }

@@ -25,16 +25,19 @@ public class LoansController : ControllerBase
 
     [HttpGet]
     public async Task<ActionResult<PagedResult<LoanDto>>> GetAll(
-        [FromQuery] string? status, [FromQuery] string? currency,
+        [FromQuery] string? currency, [FromQuery] string? clientName, [FromQuery] bool includeClosed = false,
         [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
     {
         var query = _db.Loans.Include(l => l.Client).Include(l => l.Payments).AsQueryable();
 
-        if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<LoanStatus>(status, true, out var st))
-            query = query.Where(l => l.Status == st);
+        if (!includeClosed)
+            query = query.Where(l => l.Status != LoanStatus.Closed);
 
         if (!string.IsNullOrWhiteSpace(currency) && Enum.TryParse<Currency>(currency, true, out var cur))
             query = query.Where(l => l.Currency == cur);
+
+        if (!string.IsNullOrWhiteSpace(clientName))
+            query = query.Where(l => l.Client!.Name.Contains(clientName));
 
         query = query.OrderByDescending(l => l.CreatedAt);
 
@@ -44,6 +47,16 @@ public class LoansController : ControllerBase
         var dtos = items.Select(ToDto).ToList();
 
         return Ok(new PagedResult<LoanDto> { Items = dtos, TotalCount = total, Page = page, PageSize = pageSize });
+    }
+
+    [HttpGet("{id}")]
+    public async Task<ActionResult<LoanDto>> GetById(int id)
+    {
+        var loan = await _db.Loans.Include(l => l.Client).Include(l => l.Payments)
+            .FirstOrDefaultAsync(l => l.Id == id);
+        if (loan == null) return NotFound();
+
+        return Ok(ToDto(loan));
     }
 
     [HttpPost]
