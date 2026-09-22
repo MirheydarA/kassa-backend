@@ -19,6 +19,7 @@ public class ExchangeDto
     public decimal FromAmount { get; set; }
     public decimal Rate { get; set; }
     public decimal ToAmount { get; set; }
+    public decimal? RealizedProfit { get; set; }
     public string? Note { get; set; }
     public DateTime CreatedAt { get; set; }
 }
@@ -28,4 +29,9 @@ public class UpdateExchangeRequest
     public decimal FromAmount { get; set; }
     public decimal Rate { get; set; }
     public string? Note { get; set; }
+}
+
+public class ExchangeProfitSummaryDto
+{
+    public decimal TotalRealizedProfit { get; set; }
 }

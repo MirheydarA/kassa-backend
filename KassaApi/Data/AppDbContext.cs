@@ -14,6 +14,8 @@ public class AppDbContext : DbContext
     public DbSet<MyDebt> MyDebts => Set<MyDebt>();
     public DbSet<MyDebtPayment> MyDebtPayments => Set<MyDebtPayment>();
     public DbSet<Exchange> Exchanges => Set<Exchange>();
+    public DbSet<CurrencyLot> CurrencyLots => Set<CurrencyLot>();
+    public DbSet<LotConsumption> LotConsumptions => Set<LotConsumption>();
     public DbSet<Expense> Expenses => Set<Expense>();
     public DbSet<CashBoxBalance> CashBoxBalances => Set<CashBoxBalance>();
     public DbSet<CashBoxTransaction> CashBoxTransactions => Set<CashBoxTransaction>();
@@ -72,6 +74,24 @@ public class AppDbContext : DbContext
             .HasForeignKey(p => p.MyDebtId)
             .OnDelete(DeleteBehavior.Cascade);
 
+        modelBuilder.Entity<CurrencyLot>()
+            .HasOne(l => l.SourceExchange)
+            .WithMany()
+            .HasForeignKey(l => l.SourceExchangeId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<LotConsumption>()
+            .HasOne(c => c.Lot)
+            .WithMany()
+            .HasForeignKey(c => c.LotId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<LotConsumption>()
+            .HasOne(c => c.SellExchange)
+            .WithMany()
+            .HasForeignKey(c => c.SellExchangeId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         modelBuilder.Entity<AppUser>().HasQueryFilter(e => !e.IsDeleted);
         modelBuilder.Entity<Client>().HasQueryFilter(e => !e.IsDeleted);
         modelBuilder.Entity<Loan>().HasQueryFilter(e => !e.IsDeleted);
@@ -79,6 +99,8 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<MyDebt>().HasQueryFilter(e => !e.IsDeleted);
         modelBuilder.Entity<MyDebtPayment>().HasQueryFilter(e => !e.IsDeleted);
         modelBuilder.Entity<Exchange>().HasQueryFilter(e => !e.IsDeleted);
+        modelBuilder.Entity<CurrencyLot>().HasQueryFilter(e => !e.IsDeleted);
+        modelBuilder.Entity<LotConsumption>().HasQueryFilter(e => !e.IsDeleted);
         modelBuilder.Entity<Expense>().HasQueryFilter(e => !e.IsDeleted);
         modelBuilder.Entity<CashBoxBalance>().HasQueryFilter(e => !e.IsDeleted);
         modelBuilder.Entity<CashBoxTransaction>().HasQueryFilter(e => !e.IsDeleted);
