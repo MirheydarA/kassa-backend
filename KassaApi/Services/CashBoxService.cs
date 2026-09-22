@@ -123,12 +123,13 @@ public class CashBoxService
         return query;
     }
 
+    // Amount işarəli qaytarılır (In üçün müsbət, Out üçün mənfi) ki, frontend mədaxil/məxaric fərqini göstərə bilsin.
     private static CashBoxTransactionDto ToDto(CashBoxTransaction t) => new()
     {
         Id = t.Id,
         Currency = t.Currency.ToString(),
         Type = ComputeLogicalType(t.Source, t.Type),
-        Amount = t.Amount,
+        Amount = t.Type == TransactionType.Out ? -t.Amount : t.Amount,
         Source = t.Source.ToString(),
         Description = t.Description,
         CreatedAt = t.CreatedAt
