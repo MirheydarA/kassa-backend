@@ -12,6 +12,8 @@ public class Exchange : ISoftDeletable
     public decimal FromAmount { get; set; }
     public decimal Rate { get; set; }
     public decimal ToAmount { get; set; }
+    // Yalnız "Dollar satışı" qeydlərində dolur - FIFO ilə uyğunlaşdırılan partiyalardan əldə edilən qazanc (RUB)
+    public decimal? RealizedProfit { get; set; }
     public string? Note { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public bool IsDeleted { get; set; }
