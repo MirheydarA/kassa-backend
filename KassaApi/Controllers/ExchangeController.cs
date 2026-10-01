@@ -56,6 +56,26 @@ public class ExchangeController : ControllerBase
         return Ok(new ExchangeProfitSummaryDto { TotalRealizedProfit = total });
     }
 
+    // Hazırda açıq (hələ tam satılmamış) dollar partiyaları - ən köhnədən yeniyə (FIFO-nun işləyəcəyi sıra ilə)
+    [HttpGet("lots")]
+    public async Task<ActionResult<List<CurrencyLotDto>>> GetOpenLots()
+    {
+        var lots = await _db.CurrencyLots
+            .Where(l => l.Currency == Currency.USD && l.RemainingAmount > 0)
+            .OrderBy(l => l.CreatedAt)
+            .ToListAsync();
+
+        return Ok(lots.Select(l => new CurrencyLotDto
+        {
+            Id = l.Id,
+            Currency = l.Currency.ToString(),
+            Rate = l.Rate,
+            OriginalAmount = l.OriginalAmount,
+            RemainingAmount = l.RemainingAmount,
+            CreatedAt = l.CreatedAt
+        }).ToList());
+    }
+
     [HttpPost]
     public async Task<ActionResult<ExchangeDto>> Create(CreateExchangeRequest request)
     {
