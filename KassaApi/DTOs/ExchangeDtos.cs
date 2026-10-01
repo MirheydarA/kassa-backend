@@ -35,3 +35,13 @@ public class ExchangeProfitSummaryDto
 {
     public decimal TotalRealizedProfit { get; set; }
 }
+
+public class CurrencyLotDto
+{
+    public int Id { get; set; }
+    public string Currency { get; set; } = string.Empty;
+    public decimal Rate { get; set; }
+    public decimal OriginalAmount { get; set; }
+    public decimal RemainingAmount { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
