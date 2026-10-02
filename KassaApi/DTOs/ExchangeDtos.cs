@@ -45,3 +45,23 @@ public class CurrencyLotDto
     public decimal RemainingAmount { get; set; }
     public DateTime CreatedAt { get; set; }
 }
+
+// Bir satışın hansı partiya(lar)dan, nə qədər və hansı qazancla qarşılandığını göstərir ("qəbz" detalı)
+public class LotConsumptionDetailDto
+{
+    public int LotId { get; set; }
+    public decimal LotRate { get; set; }
+    public DateTime LotCreatedAt { get; set; }
+    public decimal Amount { get; set; }
+    public decimal Profit { get; set; }
+}
+
+// Bir partiyanın hansı satış(lar)a, nə qədər və hansı qazancla getdiyini göstərir (partiyanın "tale"si)
+public class LotSaleDetailDto
+{
+    public int SellExchangeId { get; set; }
+    public DateTime SellCreatedAt { get; set; }
+    public decimal SellRate { get; set; }
+    public decimal Amount { get; set; }
+    public decimal Profit { get; set; }
+}

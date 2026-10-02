@@ -56,14 +56,17 @@ public class ExchangeController : ControllerBase
         return Ok(new ExchangeProfitSummaryDto { TotalRealizedProfit = total });
     }
 
-    // Hazırda açıq (hələ tam satılmamış) dollar partiyaları - ən köhnədən yeniyə (FIFO-nun işləyəcəyi sıra ilə)
+    // Dollar partiyaları - ən köhnədən yeniyə (FIFO-nun işləyəcəyi sıra ilə).
+    // includeClosed=false (default): yalnız açıq (hələ tam satılmamış) partiyalar.
+    // includeClosed=true: bağlanmış (tam satılmış) partiyalar da daxil - partiyanın tam tarixçəsini görmək üçün.
     [HttpGet("lots")]
-    public async Task<ActionResult<List<CurrencyLotDto>>> GetOpenLots()
+    public async Task<ActionResult<List<CurrencyLotDto>>> GetOpenLots([FromQuery] bool includeClosed = false)
     {
-        var lots = await _db.CurrencyLots
-            .Where(l => l.Currency == Currency.USD && l.RemainingAmount > 0)
-            .OrderBy(l => l.CreatedAt)
-            .ToListAsync();
+        var query = _db.CurrencyLots.Where(l => l.Currency == Currency.USD);
+        if (!includeClosed)
+            query = query.Where(l => l.RemainingAmount > 0);
+
+        var lots = await query.OrderBy(l => l.CreatedAt).ToListAsync();
 
         return Ok(lots.Select(l => new CurrencyLotDto
         {
@@ -73,6 +76,49 @@ public class ExchangeController : ControllerBase
             OriginalAmount = l.OriginalAmount,
             RemainingAmount = l.RemainingAmount,
             CreatedAt = l.CreatedAt
+        }).ToList());
+    }
+
+    // Bir satışın hansı partiya(lar)dan, nə qədər və hansı qazancla qarşılandığının detalı ("qəbz")
+    [HttpGet("{id}/consumptions")]
+    public async Task<ActionResult<List<LotConsumptionDetailDto>>> GetConsumptions(int id)
+    {
+        var exchange = await _db.Exchanges.FindAsync(id);
+        if (exchange == null) return NotFound();
+
+        var consumptions = await _db.LotConsumptions
+            .Include(c => c.Lot)
+            .Where(c => c.SellExchangeId == id)
+            .OrderBy(c => c.Lot!.CreatedAt)
+            .ToListAsync();
+
+        return Ok(consumptions.Select(c => new LotConsumptionDetailDto
+        {
+            LotId = c.LotId,
+            LotRate = c.Rate,
+            LotCreatedAt = c.Lot?.CreatedAt ?? default,
+            Amount = c.Amount,
+            Profit = c.Amount * (exchange.Rate - c.Rate)
+        }).ToList());
+    }
+
+    // Bir partiyanın hansı satış(lar)a, nə qədər və hansı qazancla getdiyinin tarixçəsi
+    [HttpGet("lots/{lotId}/sales")]
+    public async Task<ActionResult<List<LotSaleDetailDto>>> GetLotSales(int lotId)
+    {
+        var consumptions = await _db.LotConsumptions
+            .Include(c => c.SellExchange)
+            .Where(c => c.LotId == lotId)
+            .OrderBy(c => c.SellExchange!.CreatedAt)
+            .ToListAsync();
+
+        return Ok(consumptions.Select(c => new LotSaleDetailDto
+        {
+            SellExchangeId = c.SellExchangeId,
+            SellCreatedAt = c.SellExchange?.CreatedAt ?? default,
+            SellRate = c.SellExchange?.Rate ?? 0,
+            Amount = c.Amount,
+            Profit = c.Amount * ((c.SellExchange?.Rate ?? 0) - c.Rate)
         }).ToList());
     }
 
