@@ -18,6 +18,9 @@ builder.Services.AddScoped<AuthService>();
 
 // Auth (JWT)
 var jwtSection = builder.Configuration.GetSection("Jwt");
+var jwtKey = jwtSection["Key"];
+if (string.IsNullOrWhiteSpace(jwtKey))
+    throw new InvalidOperationException("Jwt:Key konfiqurasiya edilməyib (Jwt__Key mühit dəyişəni tələb olunur)");
 builder.Services.AddAuthentication(options =>
     {
         options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -33,7 +36,7 @@ builder.Services.AddAuthentication(options =>
             ValidateIssuerSigningKey = true,
             ValidIssuer = jwtSection["Issuer"],
             ValidAudience = jwtSection["Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSection["Key"]!))
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
         };
     });
 
@@ -93,8 +96,10 @@ using (var scope = app.Services.CreateScope())
     if (!db.Users.Any())
     {
         var authService = scope.ServiceProvider.GetRequiredService<AuthService>();
-        var adminUsername = builder.Configuration["AdminUser:Username"] ?? "admin";
-        var adminPassword = builder.Configuration["AdminUser:Password"] ?? "Admin123!";
+        var adminUsername = builder.Configuration["AdminUser:Username"];
+        var adminPassword = builder.Configuration["AdminUser:Password"];
+        if (string.IsNullOrWhiteSpace(adminUsername) || string.IsNullOrWhiteSpace(adminPassword))
+            throw new InvalidOperationException("AdminUser:Username/Password konfiqurasiya edilməyib (ilk admin hesabı üçün tələb olunur)");
 
         var admin = new AppUser { Username = adminUsername };
         admin.PasswordHash = authService.HashPassword(admin, adminPassword);

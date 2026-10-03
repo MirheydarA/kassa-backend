@@ -4,9 +4,9 @@ services:
     container_name: kassa-sqlserver
     environment:
       ACCEPT_EULA: "Y"
-      MSSQL_SA_PASSWORD: "YourStrong!Passw0rd"
+      MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD:?MSSQL_SA_PASSWORD .env-də təyin edilməlidir}"
     ports:
-      - "1433:1433"
+      - "127.0.0.1:1433:1433"
     volumes:
       - sqlserver-data:/var/opt/mssql
     healthcheck:
@@ -25,15 +25,15 @@ services:
       sqlserver:
         condition: service_healthy
     environment:
-      ASPNETCORE_ENVIRONMENT: "Development"
-      ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=KassaDb;User Id=sa;Password=YourStrong!Passw0rd;TrustServerCertificate=True;"
-      Jwt__Key: "CHANGE_THIS_TO_A_LONG_RANDOM_SECRET_KEY_AT_LEAST_32_CHARS"
+      ASPNETCORE_ENVIRONMENT: "${ASPNETCORE_ENVIRONMENT:-Development}"
+      ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=KassaDb;User Id=sa;Password=${MSSQL_SA_PASSWORD:?MSSQL_SA_PASSWORD .env-də təyin edilməlidir};TrustServerCertificate=True;"
+      Jwt__Key: "${JWT_KEY:?JWT_KEY .env-də təyin edilməlidir}"
       Jwt__Issuer: "KassaApi"
       Jwt__Audience: "KassaApiClient"
       Jwt__ExpiresMinutes: "480"
-      AdminUser__Username: "admin"
-      AdminUser__Password: "Admin123!"
-      Cors__AllowedOrigin: "http://localhost:5173"
+      AdminUser__Username: "${ADMIN_USERNAME:?ADMIN_USERNAME .env-də təyin edilməlidir}"
+      AdminUser__Password: "${ADMIN_PASSWORD:?ADMIN_PASSWORD .env-də təyin edilməlidir}"
+      Cors__AllowedOrigin: "${CORS_ALLOWED_ORIGIN:-http://localhost:5173}"
     ports:
       - "5000:8080"
 
