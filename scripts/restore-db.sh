@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Kassa DB-ni OneDrive-dakı bir backup-dan bərpa edir.
+# Kassa DB-ni Google Drive-dakı bir backup-dan bərpa edir.
 #
 # İstifadə:
-#   ./scripts/restore-db.sh --list           # OneDrive-dakı mövcud backup-ları göstər
+#   ./scripts/restore-db.sh --list           # Google Drive-dakı mövcud backup-ları göstər
 #   ./scripts/restore-db.sh <fayl_adı.bak>   # həmin backup-ı bərpa et
 #
 # DİQQƏT: Bərpa mövcud KassaDb bazasını TAM ƏVƏZ EDİR (WITH REPLACE).
@@ -14,7 +14,7 @@ set -euo pipefail
 
 CONTAINER_NAME="kassa-sqlserver"       # production-da fərqlidirsə dəyiş (docker ps)
 DB_NAME="KassaDb"
-REMOTE="onedrive:KassaBackups"
+REMOTE="gdrive:KassaBackups"
 LOCAL_TMP_DIR="/tmp/kassa-restore"
 
 if [ "${1:-}" = "--list" ] || [ "${1:-}" = "" ]; then
