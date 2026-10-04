@@ -19,6 +19,7 @@ public class AppDbContext : DbContext
     public DbSet<Expense> Expenses => Set<Expense>();
     public DbSet<CashBoxBalance> CashBoxBalances => Set<CashBoxBalance>();
     public DbSet<CashBoxTransaction> CashBoxTransactions => Set<CashBoxTransaction>();
+    public DbSet<DayClose> DayCloses => Set<DayClose>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -104,6 +105,7 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Expense>().HasQueryFilter(e => !e.IsDeleted);
         modelBuilder.Entity<CashBoxBalance>().HasQueryFilter(e => !e.IsDeleted);
         modelBuilder.Entity<CashBoxTransaction>().HasQueryFilter(e => !e.IsDeleted);
+        modelBuilder.Entity<DayClose>().HasQueryFilter(e => !e.IsDeleted);
     }
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)

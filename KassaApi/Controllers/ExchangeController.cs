@@ -24,12 +24,30 @@ public class ExchangeController : ControllerBase
 
     [HttpGet]
     public async Task<ActionResult<PagedResult<ExchangeDto>>> GetAll(
-        [FromQuery] string? fromCurrency, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+        [FromQuery] string? fromCurrency, [FromQuery] int page = 1, [FromQuery] int pageSize = 10,
+        [FromQuery] bool current = false)
     {
         var queryable = _db.Exchanges.Include(e => e.Client).AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(fromCurrency) && Enum.TryParse<Currency>(fromCurrency, true, out var fc))
             queryable = queryable.Where(e => e.FromCurrency == fc);
+
+        if (current)
+        {
+            var latestClose = await _db.DayCloses
+                .OrderByDescending(d => d.ClosedAt)
+                .Select(d => (DateTime?)d.ClosedAt)
+                .FirstOrDefaultAsync();
+
+            if (latestClose != null)
+            {
+                // "Günü bitir"-dən sonrakı əməliyyatlar + hələ bağlanmamış (tam satılmamış) alış partiyaları
+                queryable = queryable.Where(e =>
+                    e.CreatedAt > latestClose ||
+                    (e.FromCurrency == Currency.USD && e.ToCurrency == Currency.RUB &&
+                     _db.CurrencyLots.Any(l => l.SourceExchangeId == e.Id && l.RemainingAmount > 0)));
+            }
+        }
 
         var query = queryable.OrderByDescending(e => e.CreatedAt);
 
