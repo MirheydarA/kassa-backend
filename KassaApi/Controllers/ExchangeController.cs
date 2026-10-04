@@ -170,10 +170,10 @@ public class ExchangeController : ControllerBase
 
         // Client bizə "from" valyutasını verir -> bizim "from" kassamız artır
         await _cashBox.ChangeBalanceAsync(from, request.FromAmount, CashSource.Exchange, exchange.Id,
-            $"Mübadilə ({from}->{to}): {client.Name}");
+            $"{from}->{to}");
         // Biz ona "to" valyutasını veririk -> bizim "to" kassamız azalır
         await _cashBox.ChangeBalanceAsync(to, -toAmount, CashSource.Exchange, exchange.Id,
-            $"Mübadilə ({from}->{to}): {client.Name}");
+            $"{from}->{to}");
 
         // Dollar alışı/satışı maya dəyəri izlənməsi (FIFO)
         if (from == Currency.USD && to == Currency.RUB)
@@ -298,9 +298,9 @@ public class ExchangeController : ControllerBase
         }
 
         await _cashBox.ChangeBalanceAsync(exchange.FromCurrency, -exchange.FromAmount, CashSource.Exchange, exchange.Id,
-            $"Mübadilə redaktəsi (geri alma): {exchange.Client!.Name}");
+            $"{exchange.FromCurrency}->{exchange.ToCurrency}");
         await _cashBox.ChangeBalanceAsync(exchange.ToCurrency, exchange.ToAmount, CashSource.Exchange, exchange.Id,
-            $"Mübadilə redaktəsi (geri alma): {exchange.Client!.Name}");
+            $"{exchange.FromCurrency}->{exchange.ToCurrency}");
 
         exchange.FromAmount = request.FromAmount;
         exchange.Rate = request.Rate;
@@ -315,9 +315,9 @@ public class ExchangeController : ControllerBase
         }
 
         await _cashBox.ChangeBalanceAsync(exchange.FromCurrency, request.FromAmount, CashSource.Exchange, exchange.Id,
-            $"Mübadilə redaktəsi (yeni): {exchange.Client!.Name}");
+            $"{exchange.FromCurrency}->{exchange.ToCurrency}");
         await _cashBox.ChangeBalanceAsync(exchange.ToCurrency, -exchange.ToAmount, CashSource.Exchange, exchange.Id,
-            $"Mübadilə redaktəsi (yeni): {exchange.Client!.Name}");
+            $"{exchange.FromCurrency}->{exchange.ToCurrency}");
 
         await _db.SaveChangesAsync();
         return Ok(ToDto(exchange));
