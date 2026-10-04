@@ -4,6 +4,7 @@ using KassaApi.DTOs;
 using KassaApi.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace KassaApi.Controllers;
 
@@ -20,6 +21,7 @@ public class AuthController : ControllerBase
         _auth = auth;
     }
 
+    [EnableRateLimiting("login")]
     [HttpPost("login")]
     public async Task<ActionResult<LoginResponse>> Login(LoginRequest request)
     {
