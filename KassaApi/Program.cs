@@ -1,8 +1,10 @@
 using System.Text;
+using System.Threading.RateLimiting;
 using KassaApi.Data;
 using KassaApi.Models;
 using KassaApi.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
@@ -15,6 +17,21 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // Services
 builder.Services.AddScoped<CashBoxService>();
 builder.Services.AddScoped<AuthService>();
+
+// Login endpoint-i brute-force cəhdlərdən qorumaq üçün: eyni IP-dən dəqiqədə 5 cəhd limiti
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("login", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            }));
+});
 
 // Auth (JWT)
 var jwtSection = builder.Configuration.GetSection("Jwt");
@@ -115,6 +132,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors("Frontend");
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
