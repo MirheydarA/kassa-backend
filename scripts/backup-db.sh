@@ -1,15 +1,17 @@
 #!/usr/bin/env bash
 # Kassa DB-nin avtomatik backup-ı: SQL Server container-dən backup alır,
-# OneDrive-a göndərir, köhnə (RETENTION_DAYS-dən artıq) faylları silir.
+# Google Drive-a göndərir, köhnə (RETENTION_DAYS-dən artıq) faylları silir.
 #
 # Bir dəfəlik qurulum (server üzərində):
 #   1) rclone qur:        curl https://rclone.org/install.sh | sudo bash
-#   2) OneDrive remote-u:  rclone config
-#        - "n" (new remote), ad: onedrive, tip: Microsoft OneDrive
+#   2) Google Drive remote-u:  rclone config
+#        - "n" (new remote), ad: gdrive, tip: Google Drive
+#        - scope sualında "1" (full access) seç
 #        - server-də brauzer olmadığı üçün "auto config" sualına "n" cavabı ver,
-#          təlimat verəcək: öz noutbukunda "rclone authorize \"onedrive\"" işlət,
-#          brauzerdə Microsoft hesabınla daxil ol, çıxan token-i serverdəki
-#          suala yapışdır (paste et).
+#          təlimat verəcək: öz noutbukunda "rclone authorize \"drive\"" işlət,
+#          brauzerdə Google hesabınla daxil ol, çıxan token-i serverdəki
+#          suala yapışdır (paste et)
+#        - "Configure as a Shared Drive?" sualına "n" de (adi Drive kifayətdir)
 #   3) Bu skripti serverə gətir (git pull artıq gətirəcək) və icazə ver:
 #        chmod +x scripts/backup-db.sh
 #   4) CONTAINER_NAME aşağıda production-dakı SQL Server container adı ilə
@@ -24,7 +26,7 @@ set -euo pipefail
 # ---- Konfiqurasiya ----
 CONTAINER_NAME="kassa-sqlserver"       # production-da fərqlidirsə dəyiş (docker ps)
 DB_NAME="KassaDb"
-REMOTE="onedrive:KassaBackups"         # rclone remote adı + OneDrive-dakı qovluq
+REMOTE="gdrive:KassaBackups"           # rclone remote adı + Google Drive-dakı qovluq
 RETENTION_DAYS=30
 BACKUP_DIR_IN_CONTAINER="/var/opt/mssql/backup"
 LOCAL_TMP_DIR="/tmp/kassa-backup"
